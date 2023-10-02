@@ -126,7 +126,52 @@ def gurwitz_function(Q, alpha=0.6):
     return optimal_project + 1, max_c
 
 def laplas_function(Q):
-    return 0, 0
+    laplas_values = []
+    for i in range(n):
+        laplas = sum(Q[i]) / m
+        laplas_values.append(laplas)
+
+    # Создание таблицы PrettyTable для Критерия Лапласа
+    table_l = PrettyTable()
+    table_l.field_names = ["Проект"] + ["Критерий Лапласа"]
+
+    # Добавление строк в таблицу table_l
+    for i in range(n):
+        table_l.add_row([i + 1] + [laplas_values[i]])
+
+    # Вывод таблицы Критерия Лапласа
+    print("\nТаблица Критерия Лапласа:")
+    print(table_l)
+
+    max_l = np.max(laplas_values)
+
+    # Находим индекс строки с максималььным значением среднего взвешенного 
+    optimal_project = np.argmax(laplas_values) 
+
+    return optimal_project + 1, max_l
+
+def bayes_function(Q, vector=[0.1, 0.4, 0.4, 0.1]):
+    # Рассчитываем сумму для каждой строки с учетом весовых коэффициентов
+    bayes_values = np.dot(Q, vector)
+
+    # Находим максимум из значений критерия Байеса
+    max_bayes_value = np.max(bayes_values)
+
+    # Находим индекс строки с максимальным значением критерия Байеса
+    optimal_project = np.argmax(bayes_values) + 1
+
+    # Создаем таблицу PrettyTable
+    table_b = PrettyTable()
+    table_b.field_names = ["Проект"] + ["Критерий Байеса"]
+
+    # Добавляем строки в таблицу
+    for i in range(Q.shape[0]):
+        table_b.add_row([i + 1] + [bayes_values[i]])
+    
+    print("\nТаблица Критерия Байеса:")
+    print(table_b)
+
+    return optimal_project, max_bayes_value
 
 
 # Ввод способа заполнения таблицы
@@ -181,11 +226,79 @@ print(f"Оптимальный проект: Проект {voice_s} с Крит�
 
 print("\n\nТаблица Q:")
 print(table)
-a = float(input('\nВведите весовой коэффициент: '))
-voice_g, value_g = gurwitz_function(Q, a)
+# a = float(input('\nВведите весовой коэффициент: '))
+voice_g, value_g = gurwitz_function(Q) #, a)
 print(f"Оптимальный проект: Проект {voice_g} с Критерием Гурвица = {round(value_g, 2)}")
 
 print("\n\nТаблица Q:")
 print(table)
 voice_l, value_l = laplas_function(Q)
-print(f"Оптимальный проект: Проект {voice_l} с Критерием Лапласа = {value_s}")
+print(f"Оптимальный проект: Проект {voice_l} с Критерием Лапласа = {value_l}")
+
+print("\n\nТаблица Q:")
+print(table)
+# v = [float(input('\nВведите весовой коэффициент: ')) for _ in range(m)]
+voice_b, value_b = bayes_function(Q) #, v)
+print(f"Оптимальный проект: Проект {voice_l} с Критерием Байеса = {voice_l}")
+
+
+# Создание таблицы PrettyTable для Q
+table = PrettyTable()
+table.field_names = ["Критерий"] + ["Голос"]
+
+
+# Добавление строк в таблицу
+table.add_row(["Критерий Вальда"] + [voice_w])
+table.add_row(["Критерий Сэвиджа"] + [voice_s])
+table.add_row(["Критерий Гурвица"] + [voice_g])
+table.add_row(["Критерий Лапласа"] + [voice_l])
+table.add_row(["Критерий Байеса"] + [voice_b])
+
+# Создаем словарь для хранения голосов критериев
+
+
+
+criteria_votes = {
+    "Критерий Вальда": voice_w,
+    "Критерий Сэвиджа": voice_s,
+    "Критерий Гурвица": voice_g,
+    "Критерий Лапласа": voice_l,
+    "Критерий Байеса": voice_b
+}
+
+# Создаем векторы голосов
+vectors = {criterion: [] for criterion in criteria_votes}
+
+# Заполняем векторы голосов
+for criterion, votes in criteria_votes.items():
+    vector = [1 if i + 1 == votes else 0 for i in range(n)]
+    vectors[criterion] = vector
+
+# Преобразуем векторы голосов в матрицу
+voting_matrix = np.array([vectors[criterion] for criterion in criteria_votes])
+
+# Транспонируем матрицу
+voting_matrix_transposed = voting_matrix.T
+
+
+print("\n\nМатрица голосования:")
+# Создаем таблицу PrettyTable
+voting_table = PrettyTable()
+voting_table.field_names = ["Номер проекта"] + list(criteria_votes.keys()) + ["Сумма голосов"]
+
+# Выводим транспонированную матрицу голосов
+for i, row in enumerate(voting_matrix_transposed):
+    project_name = f"x_{i+1}"
+    row_str = [project_name] + list(map(str, row)) + [sum(row)]
+    voting_table.add_row(row_str)
+
+# Выводим таблицу
+print(voting_table)
+
+# Находим номер проекта с максимальной суммой голосов
+max_sum_project = voting_matrix_transposed.sum(axis=1).argmax() + 1
+max_sum = max(voting_matrix_transposed.sum(axis=1))
+
+# Выводим номер проекта и сумму голосов
+print(f"Проект с максимальной суммой голосов: x_{max_sum_project} (Сумма голосов: {max_sum})")
+
